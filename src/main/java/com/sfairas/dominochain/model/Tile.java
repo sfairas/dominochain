@@ -37,6 +37,19 @@ public class Tile {
     rightValue = tmp;
   }
   
+  /**
+   * A tile A is more fit (a better tile to use) than a tile B if the sum of its left and right value is greater than that of B
+   * @return the sum of left and right values
+   */
+  public int getFitness() {
+    return leftValue+rightValue;
+  }
+
+  public boolean hasValueOnEitherSide(int chainLeftSideVal, int chainRightSideVal) {
+    return this.leftValue == chainLeftSideVal || this.rightValue == chainLeftSideVal || 
+        this.leftValue == chainRightSideVal || this.rightValue == chainRightSideVal;
+  }
+
   @Override
   public String toString() {
     return "[" + leftValue + ", " + rightValue + "]";

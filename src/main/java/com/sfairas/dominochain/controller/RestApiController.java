@@ -18,7 +18,7 @@ public class RestApiController {
   @PostMapping("/")
   public Game getChain(@RequestBody(required = true) TilesRequest tileReq) {
 
-    Game game = chainEngine.calculateChainAndSum(tileReq.getStartingTile(), tileReq.getTiles());
+    Game game = chainEngine.computeChainAndSum(tileReq.getStartingTile(), tileReq.getTiles());
 
     return game;
   } 
