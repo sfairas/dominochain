@@ -1,6 +1,7 @@
 package com.sfairas.dominochain.service;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -29,8 +30,6 @@ public class ChainEngine {
    * @return A {@link Game} object containing the resulting chain along with the maximum sum of common values between connected pieces as well as any remaining unallocated Tiles
    */
   public Game computeChainAndSum(Tile startingTile, List<Tile> tiles) {
-    // TODO: does this improve anything? - Maybe sort in the stream within the second for loop to get the ones with the highest fitness?
-    //tiles.sort(Comparator.comparing(Tile::getFitness).reversed()); // sort the list according to the fitness of each tile
     TreeMap<Integer, Game> gameScores = new TreeMap<>();
     
     for(int j = 0; j < MAXRUN; j++) {
@@ -41,7 +40,10 @@ public class ChainEngine {
       for (int i = 0; i < MAXRUN; i++) {
         int chainLeftSideNum = tilesChain.getFirst().getLeftValue();
         int chainRightSideNum = tilesChain.getLast().getRightValue();
-        List<Tile> unPlayedTiles = tiles.stream().filter(t -> !t.isPlayed() && t.hasValueOnEitherSide(chainLeftSideNum, chainRightSideNum)).collect(Collectors.toList());
+        List<Tile> unPlayedTiles = tiles.stream()
+            .filter(t -> !t.isPlayed() && t.hasValueOnEitherSide(chainLeftSideNum, chainRightSideNum))
+            .collect(Collectors.toList());
+
         if(unPlayedTiles.isEmpty()) {
           break;
         }
