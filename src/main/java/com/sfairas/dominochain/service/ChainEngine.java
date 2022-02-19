@@ -69,6 +69,8 @@ public class ChainEngine {
     log.debug("Sum: "+gameScores.lastEntry().getKey());
     log.debug("Unallocated tiles: "+gameScores.lastEntry().getValue().getUnallocatedTiles());
 
+    // TreeMap is by default sorted according to the natural ordering of its keys so the last value is the one
+    // with the maximum sum of common values between Tiles.
     return gameScores.lastEntry().getValue();
   }
 
