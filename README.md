@@ -33,7 +33,7 @@ Example body JSON:
 }
 ```
 
-
+A Postman example request is saved in src/main/resources/domino.postman_collection.json that can be imported into Postman.
 
 ## The API response
 A JSON object containing the resulting chain in a string format along with the maximum sum of common values between connected pieces as well as any remaining unallocated Tiles.
