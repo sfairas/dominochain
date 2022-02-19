@@ -11,9 +11,45 @@ A REST API that computes and returns the Domino chain with the highest value of 
 ## Some notes on the algorithm
 The algorithm tries to accommodate all pieces in the chain by running 1000 runs of possible games. It then chooses to respond with the chain that has the greatest sum of common values between connected Tiles.
 
+## The API request
+Use Postman or similar tool to test the POST request.
+
+Example POST Request Mapping: http://localhost:8080/chain/compute
+
+Example body JSON:
+
+```json
+{
+    "startingTile": 
+    {"leftValue": 1, "rightValue": 9},
+    "tiles":[
+        {"leftValue": 2, "rightValue": 9},
+        {"leftValue": 3, "rightValue": 5},
+        {"leftValue": 9, "rightValue": 3},
+        {"leftValue": 9, "rightValue": 1},
+        {"leftValue": 1, "rightValue": 2}
+       
+    ]
+}
+```
+
+
+
 ## The API response
-A JSON object containing the resulting chain in a string format along with the maximum sum of common values between connected pieces as well as any remaining unallocated Tiles
+A JSON object containing the resulting chain in a string format along with the maximum sum of common values between connected pieces as well as any remaining unallocated Tiles.
+
+For example
+
+```json
+{
+    "chain": "[[5, 3], [3, 9], [9, 2], [2, 1], [1, 9], [9, 1]]",
+    "maxSumVal": 24,
+    "unallocatedTiles": []
+}
+```
+
 
 
 ## How to run
 To run using maven simply run: mvn spring-boot:run
+
