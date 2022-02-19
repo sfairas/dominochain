@@ -31,7 +31,7 @@ public class ChainEngine {
   public Game computeChainAndSum(Tile startingTile, List<Tile> tiles) {
     // TODO: does this improve anything? - Maybe sort in the stream within the second for loop to get the ones with the highest fitness?
     //tiles.sort(Comparator.comparing(Tile::getFitness).reversed()); // sort the list according to the fitness of each tile
-    TreeMap<Integer, Game> scores = new TreeMap<>();
+    TreeMap<Integer, Game> gameScores = new TreeMap<>();
     
     for(int j = 0; j < MAXRUN; j++) {
       LinkedList<Tile> tilesChain = new LinkedList<>();
@@ -58,20 +58,17 @@ public class ChainEngine {
           .unallocatedTiles(finalUnPlayedTiles)
           .build();
 
-      scores.put(sum, game);
+      gameScores.put(sum, game);
       
       // set all played to false to start another game run
       tiles.forEach(t -> {t.setPlayed(false);});
-      
-      //System.out.print(Arrays.toString(tilesChain.toArray()));
-      //System.out.println(" - "+sum);
     }
 
-    log.debug("Chain: "+scores.lastEntry().getValue().getChain()); 
-    log.debug("Sum: "+scores.lastEntry().getKey());
-    log.debug("Unallocated tiles: "+scores.lastEntry().getValue().getUnallocatedTiles());
+    log.debug("Chain: "+gameScores.lastEntry().getValue().getChain()); 
+    log.debug("Sum: "+gameScores.lastEntry().getKey());
+    log.debug("Unallocated tiles: "+gameScores.lastEntry().getValue().getUnallocatedTiles());
 
-    return scores.lastEntry().getValue();
+    return gameScores.lastEntry().getValue();
   }
 
   private int getChainValue(LinkedList<Tile> tilesChain) {
