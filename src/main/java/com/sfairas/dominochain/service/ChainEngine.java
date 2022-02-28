@@ -1,11 +1,11 @@
 package com.sfairas.dominochain.service;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,122 +13,100 @@ import org.springframework.stereotype.Service;
 
 import com.sfairas.dominochain.model.Game;
 import com.sfairas.dominochain.model.Tile;
+import com.sfairas.dominochain.model.Vertex;
 
 @Service
 public class ChainEngine {
-  
-  private static final int MAXRUN = 1000;
-  private Random random = new Random();
-  
+
   private static final Logger log = LoggerFactory.getLogger(ChainEngine.class);
 
-  /**
-   * Compute the Domino chain along with the common values between connected pieces
-   * @param startingTile The starting {@link Tile}
-   * @param tiles A {@link List} of tiles with values ranging between 1 and 10. Tiles with the same values i.e [4,4] are not valid. The list can contain duplicate Tiles. 
-   * @return A {@link Game} object containing the resulting chain along with the maximum sum of common values between connected pieces as well as any remaining unallocated Tiles
-   */
-  public Game computeChainAndSum(Tile startingTile, List<Tile> tiles) {
-    TreeMap<Integer, Game> gameScores = new TreeMap<>();
-    
-    for(int j = 0; j < MAXRUN; j++) {
-      LinkedList<Tile> tilesChain = new LinkedList<>();
-      tilesChain.add(startingTile);
-      startingTile.setPlayed(true);
-      
-      for (int i = 0; i < MAXRUN; i++) {
-        int chainLeftSideNum = tilesChain.getFirst().getLeftValue();
-        int chainRightSideNum = tilesChain.getLast().getRightValue();
-        List<Tile> unPlayedTiles = tiles.stream()
-            .filter(t -> !t.isPlayed() && t.hasValueOnEitherSide(chainLeftSideNum, chainRightSideNum))
-            .collect(Collectors.toList());
+  public Game computeGraph(Tile startingTile, List<Tile> tiles) {
+    HashMap<Integer, List<Vertex>> adjacencyList = getAdjacencyList(startingTile, tiles);
 
-        if(unPlayedTiles.isEmpty()) {
-          break;
-        }
-        int rand = random.nextInt(unPlayedTiles.size());
-        addTileToChain(tilesChain, unPlayedTiles.get(rand));
+    // TODO: think about this one, there may be a case where there is no vertex with only 1 edge.
+    // instead get the one with the less edges
+    Integer root = Integer.MAX_VALUE;
+
+    // find the vertex with the less edges and use it the root
+    for(Map.Entry<Integer, List<Vertex>> entry : adjacencyList.entrySet()) {
+      Integer key = entry.getKey();
+      List<Vertex> vertices = entry.getValue();
+      if(vertices.size() < root) {
+        root = key;
+      }
+    }
+
+    List<Integer> visited = breadthFirstSearch(adjacencyList, root);
+
+    log.debug("Vertices visit seq: "+Arrays.toString(visited.toArray()));
+
+    String chain = "["+visited.get(0);
+    for (int i=1; i<visited.size()-1; i++) {
+      Integer vx = visited.get(i);
+      chain += ", "+vx+"], ["+vx;
+    }
+    chain += ", "+visited.get(visited.size()-1)+"]";
+
+    int sum=0;
+    for(int i=1; i<visited.size()-1; i++) {
+      sum += visited.get(i);
+    }
+
+    Game game = Game.builder()
+        .chain(chain)
+        .maxSumVal(sum)
+        .build();
+
+    return game;
+  }
+
+  private HashMap<Integer, List<Vertex>> getAdjacencyList(Tile startingTile, List<Tile> tiles) {
+    HashMap<Integer, List<Vertex>> adjacencyList = new HashMap<>();
+    tiles.add(startingTile);
+
+    tiles.forEach(t -> {
+      if (!adjacencyList.containsKey(t.getLeftValue())) {
+        adjacencyList.put(t.getLeftValue(), new LinkedList<>());
       }
 
-      List<Tile> finalUnPlayedTiles = tiles.stream().filter(t -> !t.isPlayed()).collect(Collectors.toList());
-      int sum = getChainValue(tilesChain);
+      if (!adjacencyList.containsKey(t.getRightValue())) {
+        adjacencyList.put(t.getRightValue(), new LinkedList<>());
+      }
 
-      Game game = Game.builder()
-          .chain(Arrays.toString(tilesChain.toArray()))
-          .maxSumVal(sum)
-          .unallocatedTiles(finalUnPlayedTiles)
-          .build();
+      adjacencyList.get(t.getLeftValue()).add(new Vertex(t.getRightValue()));
+      adjacencyList.get(t.getRightValue()).add(new Vertex(t.getLeftValue()));
+    });
 
-      gameScores.put(sum, game);
+    return adjacencyList;
+  }
+
+  private List<Integer> breadthFirstSearch(HashMap<Integer, List<Vertex>> adjacencyList, Integer root) {
+    List<Integer> visited = new LinkedList<>();
+    Integer currentVertex = root;
+    do {
+      visited.add(currentVertex);
+      System.out.println("currentVertex: "+currentVertex);
       
-      // set all played to false to start another game run
-      tiles.forEach(t -> {t.setPlayed(false);});
-    }
+      if(visited.size() >= 2) {
+        // Get adjacency list of the previously visited vertex and set it to visited
+        Integer previousVertex = visited.get(visited.size()-2);
+        for (Vertex v : adjacencyList.get(currentVertex)) {
+          if(v.getLabel().equals(previousVertex)) {
+            System.out.println("setting "+v.getLabel() + "=true");
+            v.setVisited(true);
+            break;
+          }
+        }
+      }
+      
+      Optional<Vertex> nextVertex = adjacencyList.get(currentVertex).stream().filter(v -> !v.isVisited()).findFirst();      
 
-    log.debug("Chain: "+gameScores.lastEntry().getValue().getChain()); 
-    log.debug("Sum: "+gameScores.lastEntry().getKey());
-    log.debug("Unallocated tiles: "+gameScores.lastEntry().getValue().getUnallocatedTiles());
+      if(nextVertex.isPresent()) {
+        nextVertex.get().setVisited(true);
+        currentVertex = nextVertex.get().getLabel();
+      }
+    } while(adjacencyList.get(currentVertex).stream().anyMatch(v -> !v.isVisited()));
 
-    // TreeMap is by default sorted according to the natural ordering of its keys so the last value is the one
-    // with the maximum sum of common values between Tiles.
-    return gameScores.lastEntry().getValue();
-  }
-
-  private int getChainValue(LinkedList<Tile> tilesChain) {
-    return tilesChain.stream().map(Tile::getRightValue).reduce(0, Integer::sum) - tilesChain.getLast().getRightValue();
-  }
-
-  /**
-   * Attempt to add a tile to the chain. Attempt to place it on the side with the greatest number so as to maximise
-   * the common values between connected pieces
-   * @param tilesChain The current chain
-   * @param tileToAdd The {@link Tile} to add
-   */
-  private void addTileToChain(LinkedList<Tile> tilesChain, Tile tileToAdd) {
-    Tile first = tilesChain.getFirst();
-    Tile last = tilesChain.getLast();
-
-    // see which side has the highest value and try to match that one first
-    if(first.getLeftValue() > last.getRightValue()) {
-      addToFront(tilesChain, tileToAdd, first);
-      addToEnd(tilesChain, tileToAdd, last);
-    }else {
-      addToEnd(tilesChain, tileToAdd, last);
-      addToFront(tilesChain, tileToAdd, first);
-    }
-  }
-
-  /**
-   * Attempt to a tile to the front of the chain
-   * @param tilesChain The current chain
-   * @param tileToAdd The {@link Tile} to add
-   * @param first The first tile of the chain
-   */
-  private void addToFront(LinkedList<Tile> tilesChain, Tile tileToAdd, Tile first) {
-    if(!tileToAdd.isPlayed() && first.getLeftValue() == tileToAdd.getRightValue()) {
-      tileToAdd.setPlayed(true);
-      tilesChain.addFirst(tileToAdd);
-    }else if(!tileToAdd.isPlayed() && first.getLeftValue() == tileToAdd.getLeftValue()) {
-      tileToAdd.flip();
-      tileToAdd.setPlayed(true);
-      tilesChain.addFirst(tileToAdd);
-    }
-  }
-
-  /**
-   * Attempt to a tile to the end of the chain
-   * @param tilesChain The current chain
-   * @param tileToAdd The {@link Tile} to add
-   * @param first The last tile of the chain
-   */
-  private void addToEnd(LinkedList<Tile> tilesChain, Tile tileToAdd, Tile last) {
-    if(!tileToAdd.isPlayed() && last.getRightValue() == tileToAdd.getLeftValue()) {
-      tileToAdd.setPlayed(true);
-      tilesChain.addLast(tileToAdd);
-    }else if(!tileToAdd.isPlayed() && last.getRightValue() == tileToAdd.getRightValue()) {
-      tileToAdd.flip();
-      tileToAdd.setPlayed(true);
-      tilesChain.addLast(tileToAdd);
-    }
+    return visited;
   }
 }

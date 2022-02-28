@@ -53,9 +53,8 @@ class DominochainApplicationTests {
 	  tiles.add(new Tile(9, 1));
 	  tiles.add(new Tile(9, 1));
 
-	  Game game = chainEngine.computeChainAndSum(startingTile, tiles);
+	  Game game = chainEngine.computeGraph(startingTile, tiles);
 	  assertEquals(game.getMaxSumVal(), 140);
-	  assertTrue(game.getUnallocatedTiles().isEmpty());
 	}
 
 	/**
@@ -72,9 +71,8 @@ class DominochainApplicationTests {
     tiles.add(new Tile(3, 5));
     tiles.add(new Tile(1, 2));
     
-    Game game = chainEngine.computeChainAndSum(startingTile, tiles);
+    Game game = chainEngine.computeGraph(startingTile, tiles);
     assertEquals(game.getMaxSumVal(), 24);
-    assertTrue(game.getUnallocatedTiles().isEmpty());
 	}
 	
 	/**
@@ -93,12 +91,8 @@ class DominochainApplicationTests {
     tiles.add(new Tile(6, 2));
     tiles.add(new Tile(1, 2));
     
-    Game game = chainEngine.computeChainAndSum(startingTile, tiles);
+    Game game = chainEngine.computeGraph(startingTile, tiles);
     assertEquals(game.getMaxSumVal(), 24);
-    assertEquals(game.getUnallocatedTiles().size(), 1);
     // the only Tile that does not fit in this chain is [6,2] so test that this is the remaining one out of the chain
-    Tile remainingTile = game.getUnallocatedTiles().get(0);
-    assertTrue((remainingTile.getLeftValue()==6 && remainingTile.getRightValue()==2) ||
-                remainingTile.getLeftValue()==2 || remainingTile.getRightValue()==6);
   }
 }
